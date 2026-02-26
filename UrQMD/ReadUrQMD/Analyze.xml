@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<job  maxFilesPerProcess="30" fileListSyntax="paths" copyInputLocally="true">
+<stdout URL="file:&logDir;/$JOBID.out"/>
+<stderr URL="file:&errDir;/$JOBID.err"/>
+<Generator>
+<Location>&schedDir;</Location>
+</Generator>
+<command>
+./run -e &sNN; -n $JOBID -f $FILELIST 
+</command>
+<SandBox>
+	<Package>
+		<File>file:&workDir;/run</File>
+		<File>file:&workDir;/list-all.dat</File>
+	</Package>
+</SandBox>
+<input URL="filelist:&workDir;/list/&LIST;" nFiles="&fileNumber;"/>
+<output fromScratch="*.root" toURL="&outDir;/" />
+</job>
