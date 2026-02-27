@@ -3,6 +3,13 @@
 #include <map>
 #include <vector>
 #include <string>
+enum class OffdiagonalType
+{
+    kBS = 0,
+    kBQ = 1,
+    kQS = 2,
+    kNope = 3
+};
 struct ParticleEntry
 {
     int Baryon;
@@ -52,4 +59,7 @@ struct PDGData
     std::vector<ParticleEntry> EntryVec;
     std::map<int, ParticleEntry *> PDGMap;
 };
+int GetConservedValue(const ParticleEntry *entry, int type);
+std::pair<int, int> GetConservedTypes(OffdiagonalType type);
+std::string GetConservedString(OffdiagonalType type);
 #endif

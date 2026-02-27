@@ -18,58 +18,48 @@ struct ProxyEntry
 {
     ProxyEntry() {}
     ~ProxyEntry() {}
-    ProxyEntry(const std::string &name,
-               const std::unordered_set<int> &baryonSet,
-               const std::unordered_set<int> &strangeSet,
-               const std::unordered_set<int> &chargeSet,
-               const std::pair<int, int> &conservedPair,
-               Double_t factor) : Name(name), BaryonSet(baryonSet), StrangeSet(strangeSet), ChargeSet(chargeSet), ConservedPair(conservedPair), Factor(factor) {}
+    ProxyEntry(const std::string &name, const std::unordered_set<int> &leftSet, const std::unordered_set<int> &rightSet, Double_t factor, OffdiagonalType type = OffdiagonalType::kBS) : Name(Form("%s_%s", GetConservedString(type).c_str(), name.c_str())), LeftSet(leftSet), RightSet(rightSet), Factor(factor), Type(type) {}
     ProxyEntry(const ProxyEntry &entry)
     {
         this->Name = entry.Name;
-        this->BaryonSet = entry.BaryonSet;
-        this->StrangeSet = entry.StrangeSet;
-        this->ChargeSet = entry.ChargeSet;
-        this->ConservedPair = entry.ConservedPair;
+        this->LeftSet = entry.LeftSet;
+        this->RightSet = entry.RightSet;
         this->Factor = entry.Factor;
+        this->Type = entry.Type;
     }
     ProxyEntry &operator=(const ProxyEntry &entry)
     {
         this->Name = entry.Name;
-        this->BaryonSet = entry.BaryonSet;
-        this->StrangeSet = entry.StrangeSet;
-        this->ChargeSet = entry.ChargeSet;
-        this->ConservedPair = entry.ConservedPair;
+        this->LeftSet = entry.LeftSet;
+        this->RightSet = entry.RightSet;
         this->Factor = entry.Factor;
+        this->Type = entry.Type;
         return *this;
     }
     // Move Constructor
     ProxyEntry(ProxyEntry &&entry) noexcept
     {
         this->Name = std::move(entry.Name);
-        this->BaryonSet = std::move(entry.BaryonSet);
-        this->StrangeSet = std::move(entry.StrangeSet);
-        this->ChargeSet = std::move(entry.ChargeSet);
-        this->ConservedPair = entry.ConservedPair;
+        this->LeftSet = std::move(entry.LeftSet);
+        this->RightSet = std::move(entry.RightSet);
         this->Factor = entry.Factor;
+        this->Type = entry.Type;
     }
     // Move Assignment
     ProxyEntry &operator=(ProxyEntry &&entry) noexcept
     {
         this->Name = std::move(entry.Name);
-        this->BaryonSet = std::move(entry.BaryonSet);
-        this->StrangeSet = std::move(entry.StrangeSet);
-        this->ChargeSet = std::move(entry.ChargeSet);
-        this->ConservedPair = entry.ConservedPair;
+        this->LeftSet = std::move(entry.LeftSet);
+        this->RightSet = std::move(entry.RightSet);
         this->Factor = entry.Factor;
+        this->Type = entry.Type;
         return *this;
     }
     std::string Name;
-    std::unordered_set<int> BaryonSet;
-    std::unordered_set<int> StrangeSet;
-    std::unordered_set<int> ChargeSet;
-    std::pair<int, int> ConservedPair = {1, 2};
+    std::unordered_set<int> LeftSet;
+    std::unordered_set<int> RightSet;
     Double_t Factor;
+    OffdiagonalType Type;
 };
 struct ProxySet
 {
@@ -104,11 +94,15 @@ struct KochRatio
     void LoadMoments(Int_t iAcc, const Int_t &RefMult);
     Double_t GetCumulant(const Pool &, const Component &);
     Double_t GetError(const Pool &, const Component &);
-    Double_t GetRatioError(Int_t Order, const Pool &, const Pool &, Int_t, Int_t);
-    Double_t getError(const Pool &, std::unordered_map<Component, double, ComponentHash>&);
+    Double_t GetRatioError(Int_t Order, const Pool &, const Pool &, OffdiagonalType);
+    Double_t getError(const Pool &, std::unordered_map<Component, double, ComponentHash> &);
     Double_t getDerivative(const Pool &, const Component &, const Component &);
     void Calculate(Int_t iAcc, const std::string &name);
     void Task(Int_t iAcc, Int_t RefMult);
+    OffdiagonalType GetOffdiagonalType(const std::string &object) const
+    {
+        return OffdiagTypeMap.at(object);
+    }
     void SetStatusOff(int type);
     void SetStatusOff(std::vector<int> &type)
     {
@@ -124,10 +118,10 @@ struct KochRatio
     // Initialize depending on the dataset
     Int_t nProxy;
     std::unordered_map<std::string, std::unordered_map<Component, Series, ComponentHash>> SeriesHolder;
-    std::unordered_map<std::string, std::pair<int, int>> ConservedPairMap;
 
     std::unordered_map<std::string, std::set<Component>> Result;
     std::unordered_map<std::string, std::set<Component>> Collection;
+    std::unordered_map<std::string, OffdiagonalType> OffdiagTypeMap;
 
     std::unordered_set<int> OffSet;
 

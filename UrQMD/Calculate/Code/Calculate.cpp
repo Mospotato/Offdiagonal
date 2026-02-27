@@ -158,8 +158,25 @@ void Calculate::FillPercentage(Int_t iAcc, const std::string &object, const Bool
 {
     auto &Evaluator = KochRatio::getInstance();
     auto &document = Document::getInstance();
-    std::pair<int, int> pair = std::pair<int, int>(IsNumerator, Order - IsNumerator);
-    Component key(pair);
+    auto offdiagType = Evaluator.GetOffdiagonalType(object);
+    std::pair<int, int> conservedTypes = std::pair<int, int>{1, 2};
+    if (offdiagType == OffdiagonalType::kBQ)
+    {
+        conservedTypes = {1, 3};
+    }
+    else if (offdiagType == OffdiagonalType::kQS)
+    {
+        conservedTypes = {3, 2};
+    }
+    Component key;
+    if (IsNumerator)
+    {
+        key[conservedTypes.first] = 1;
+    }
+    if (Order - IsNumerator)
+    {
+        key[conservedTypes.second] = Order - IsNumerator;
+    }
     auto &component = Evaluator.SeriesHolder[object][key].Components;
     for (Int_t icent = 0; icent < Configuration::getInstance().nCent; icent++)
     {

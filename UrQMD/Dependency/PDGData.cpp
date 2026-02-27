@@ -32,3 +32,45 @@ PDGData::PDGData()
     }
     fin.close();
 }
+int GetConservedValue(const ParticleEntry *entry, int type)
+{
+    switch (type)
+    {
+    case 1:
+        return entry->Baryon;
+    case 2:
+        return entry->Strangeness;
+    case 3:
+        return entry->Charge;
+    default:
+        return 0;
+    }
+}
+std::pair<int, int> GetConservedTypes(OffdiagonalType type)
+{
+    switch (type)
+    {
+    case OffdiagonalType::kBQ:
+        return {1, 3};
+    case OffdiagonalType::kQS:
+        return {3, 2};
+    case OffdiagonalType::kBS:
+        return {1, 2};
+    default:
+        throw std::invalid_argument("Invalid OffdiagonalType");
+    }
+}
+std::string GetConservedString(OffdiagonalType type)
+{
+    switch (type)
+    {
+    case OffdiagonalType::kBS:
+        return "BS";
+    case OffdiagonalType::kQS:
+        return "QS";
+    case OffdiagonalType::kBQ:
+        return "BQ";
+    default:
+        throw std::invalid_argument("Invalid OffdiagonalType");
+    }
+}

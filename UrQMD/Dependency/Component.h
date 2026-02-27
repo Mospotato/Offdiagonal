@@ -7,7 +7,6 @@
 #include <unordered_set>
 struct Document
 {
-    std::vector<int> SpeciesSet;
     static Document &getInstance()
     {
         static Document instance;
@@ -17,7 +16,6 @@ struct Document
     ~Document() {};
     std::map<int, std::string> StringMap;
     std::map<int, std::string> SyntaxMap;
-    std::map<int, std::string> IndexMap;
 };
 
 struct Component

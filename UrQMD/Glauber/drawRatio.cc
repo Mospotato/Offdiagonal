@@ -7,9 +7,7 @@
 #include "TGraphErrors.h"
 #include "TPaveStats.h"
 #include "../../PlotHeaders/include.h"
-#include "../../ReadPico/Centrality/Tools.h"
 #include "../../PlotHeaders/CompactPads.h"
-Double_t GetRefmultMax(TH1 *);
 void drawRatio(Int_t Energy = 7)
 {
     gStyle->SetOptStat(0);
@@ -38,7 +36,7 @@ void drawRatio(Int_t Energy = 7)
     hUrQMD->Draw("hist");
     hUrQMD->GetXaxis()->CenterTitle(1);
     hUrQMD->GetXaxis()->SetTitleFont(62);
-    hUrQMD->GetXaxis()->SetRange(0, GetRefmultMax(hSimulation));
+    hUrQMD->GetXaxis()->SetRange(0, 3200);
     hSimulation->Draw("histsame");
     cas->cd();
     leg->Draw();

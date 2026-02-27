@@ -3,24 +3,29 @@
 #include <sstream>
 #include "KochRatio.h"
 #include "ThreadPool.h"
+Component BuildKey(int leftType, Int_t leftPower, int rightType, Int_t rightPower)
+{
+    Component key;
+    if (leftPower)
+    {
+        key[leftType] = leftPower;
+    }
+    if (rightPower)
+    {
+        key[rightType] = rightPower;
+    }
+    return key;
+}
+
 ProxySet::ProxySet()
 {
-    Entries.reserve(12);
-    Entries.emplace_back(ProxyEntry("pK", {2212}, {321}, {}, {1, 2}, 1.));
-    Entries.emplace_back(ProxyEntry("KLambda", {3122}, {321}, {}, {1, 2}, 1.));
-    Entries.emplace_back(ProxyEntry("KXi", {3312}, {321}, {}, {1, 2}, 1.));
-    Entries.emplace_back(ProxyEntry("pLambda", {2212}, {3122}, {}, {1, 2}, 1.));
-    Entries.emplace_back(ProxyEntry("pXi", {2212}, {3312}, {}, {1, 2}, 1.));
-
-    Entries.emplace_back(ProxyEntry("Lambda", {2212, 3122}, {3122, 321}, {}, {1, 2}, -3.));
-    Entries.emplace_back(ProxyEntry("Xi", {2212, 3122, 3312}, {3122, 3312, 321}, {}, {1, 2}, -3.));
-    Entries.emplace_back(ProxyEntry("AllBS", {1}, {2}, {}, {1, 2}, -3.));
-
-    Entries.emplace_back(ProxyEntry("pPi", {2212}, {}, {211}, {1, 3}, 1.));
-    Entries.emplace_back(ProxyEntry("LambdaPi", {3122}, {}, {211}, {1, 3}, 1.));
-    Entries.emplace_back(ProxyEntry("KPi", {}, {321}, {211}, {2, 3}, 1.));
-    Entries.emplace_back(ProxyEntry("AllBQ", {1}, {}, {3}, {1, 3}, 1.));
-    Entries.emplace_back(ProxyEntry("AllSQ", {}, {2}, {3}, {2, 3}, 1.));
+    Entries.reserve(8);
+    Entries.emplace_back(ProxyEntry("Lambda", {2212, 3122}, {3122, 321}, -3., OffdiagonalType::kBS));
+    Entries.emplace_back(ProxyEntry("All", {1}, {2}, -3., OffdiagonalType::kBS));
+    Entries.emplace_back(ProxyEntry("Lambda", {2212, 3122}, {2212, 211, 321}, 1., OffdiagonalType::kBQ));
+    Entries.emplace_back(ProxyEntry("All", {1}, {3}, 1., OffdiagonalType::kBQ));
+    Entries.emplace_back(ProxyEntry("Lambda", {2212, 211, 321}, {3122, 321}, 1., OffdiagonalType::kQS));
+    Entries.emplace_back(ProxyEntry("All", {2}, {3}, 1., OffdiagonalType::kQS));
 }
 void KochRatio::LoadMoments(Int_t iAcc, const Int_t &RefMult)
 {
@@ -41,10 +46,6 @@ void KochRatio::LoadMoments(Int_t iAcc, const Int_t &RefMult)
 
 void KochRatio::Calculate(Int_t iAcc, const std::string &object)
 {
-    const auto &conservedPair = ConservedPairMap[object];
-    Int_t primaryType = conservedPair.first;
-    Int_t secondaryType = conservedPair.second;
-
     Pool &cumulantPool = CumulantPool[iAcc];
     Pool &momentPool = MomentPool[iAcc];
     Pool &brickCumulant = CumulantBrick[iAcc][object][Centrality];
@@ -87,22 +88,13 @@ void KochRatio::Calculate(Int_t iAcc, const std::string &object)
     }
     auto &ratio = Ratio[iAcc][object][Centrality];
     auto &ratioError = RatioError[iAcc][object][Centrality];
+    auto [leftType, rightType] = GetConservedTypes(GetOffdiagonalType(object));
     for (Int_t Order = 0; Order < 2; Order++)
     {
-        Component numerator, denominator, ratioKey;
-        numerator[primaryType] = 1;
-        if (Order)
-        {
-            numerator[secondaryType] = Order;
-        }
-        denominator[secondaryType] = Order + 1;
-        ratioKey[primaryType] = 1;
-        if (Order)
-        {
-            ratioKey[secondaryType] = Order;
-        }
-        ratio[ratioKey] += Weight * -3. * cumulant[numerator] / cumulant[denominator];
-        ratioError[ratioKey] += ErrorWeight * GetRatioError(Order + 1, moment, cumulant, primaryType, secondaryType);
+        Component numerator = BuildKey(leftType, 1, rightType, Order);
+        Component denominator = BuildKey(leftType, 0, rightType, Order + 1);
+        ratio[numerator] += Weight * cumulant[numerator] / cumulant[denominator];
+        ratioError[numerator] += ErrorWeight * GetRatioError(Order + 1, moment, cumulant, GetOffdiagonalType(object));
     }
     return;
 }
@@ -147,18 +139,13 @@ Double_t KochRatio::GetError(const Pool &moment, const Component &component)
     return error;
 }
 
-Double_t KochRatio::GetRatioError(Int_t Order, const Pool &moment, const Pool &cumulant, Int_t primaryType, Int_t secondaryType)
+Double_t KochRatio::GetRatioError(Int_t Order, const Pool &moment, const Pool &cumulant, OffdiagonalType type)
 {
     auto *helper = ComponentHelper::getInstance();
-    Component numerator, denominator, MaxIndex;
-    numerator[primaryType] = 1;
-    denominator[secondaryType] = Order;
-    MaxIndex[primaryType] = 1;
-    MaxIndex[secondaryType] = Order;
-    if (Order > 1)
-    {
-        numerator[secondaryType] = Order - 1;
-    }
+    auto [leftType, rightType] = GetConservedTypes(type);
+    Component numerator = BuildKey(leftType, 1, rightType, Order - 1);
+    Component denominator = BuildKey(leftType, 0, rightType, Order);
+    Component MaxIndex = BuildKey(leftType, 1, rightType, Order);
     std::unordered_map<Component, double, ComponentHash> componentSet;
     auto &sets = helper->Subset(MaxIndex);
     for (const auto &differential : sets)
@@ -168,10 +155,10 @@ Double_t KochRatio::GetRatioError(Int_t Order, const Pool &moment, const Pool &c
             continue;
         }
         Double_t numeValue = getDerivative(moment, numerator, differential);
-        numeValue *= -3. / cumulant.at(denominator);
+        numeValue /= cumulant.at(denominator);
         Double_t denoValue = getDerivative(moment, denominator, differential);
-        denoValue *= 3. * cumulant.at(numerator) / std::pow(cumulant.at(denominator), 2);
-        componentSet.insert({differential, numeValue + denoValue});
+        denoValue *= cumulant.at(numerator) / std::pow(cumulant.at(denominator), 2);
+        componentSet.insert({differential, numeValue - denoValue});
     }
     Double_t error = getError(moment, componentSet);
     return error;
@@ -264,56 +251,38 @@ KochRatio::KochRatio()
     auto *helper = ComponentHelper::getInstance();
     auto *Dict = Dictionary::getInstance();
     auto &PDG = PDGData::getInstance();
-    auto &document = Document::getInstance();
     for (const auto &entry : ProxySet::getInstance().Entries)
     {
         auto &object = entry.Name;
-        ConservedPairMap[object] = entry.ConservedPair;
-
-        std::vector<Particle> BaryonArray, StrangeArray, ChargeArray;
-        if (object.find("All") != 0)
+        OffdiagTypeMap[object] = entry.Type;
+        auto [leftType, rightType] = GetConservedTypes(entry.Type);
+        std::vector<Particle> LeftArray, RightArray;
+        if (object.find("All") == std::string::npos)
         {
-            BaryonArray.reserve(2 * entry.BaryonSet.size());
-            StrangeArray.reserve(2 * entry.StrangeSet.size());
-            ChargeArray.reserve(2 * entry.ChargeSet.size());
-            for (auto &pdg : entry.BaryonSet)
+            LeftArray.reserve(2 * entry.LeftSet.size());
+            RightArray.reserve(2 * entry.RightSet.size());
+            for (auto &pdg : entry.LeftSet)
             {
-                Int_t Baryon = PDG.PDGMap.at(pdg)->Baryon;
-                BaryonArray.push_back(std::make_pair(pdg, Baryon));
-                BaryonArray.push_back(std::make_pair(-pdg, -Baryon));
+                Int_t value = GetConservedValue(PDG.PDGMap.at(pdg), leftType);
+                LeftArray.push_back(std::make_pair(pdg, value));
+                LeftArray.push_back(std::make_pair(-pdg, -value));
             }
-            for (auto &pdg : entry.StrangeSet)
+            for (auto &pdg : entry.RightSet)
             {
-                Int_t Strangeness = PDG.PDGMap.at(pdg)->Strangeness;
-                StrangeArray.push_back(std::make_pair(pdg, Strangeness));
-                StrangeArray.push_back(std::make_pair(-pdg, -Strangeness));
-            }
-            for (auto &pdg : entry.ChargeSet)
-            {
-                Int_t Charge = PDG.PDGMap.at(pdg)->Charge;
-                ChargeArray.push_back(std::make_pair(pdg, Charge));
-                ChargeArray.push_back(std::make_pair(-pdg, -Charge));
+                Int_t value = GetConservedValue(PDG.PDGMap.at(pdg), rightType);
+                RightArray.push_back(std::make_pair(pdg, value));
+                RightArray.push_back(std::make_pair(-pdg, -value));
             }
         }
         else
         {
-            BaryonArray.push_back(std::make_pair(1, 1));  // Hold All Baryons
-            StrangeArray.push_back(std::make_pair(2, 1)); // Hold All Strange Particles
-            ChargeArray.push_back(std::make_pair(3, 1));  // Hold All Charge Particles
+            LeftArray.push_back(std::make_pair(leftType, 1));
+            RightArray.push_back(std::make_pair(rightType, 1));
         }
-
-        std::unordered_map<int, std::vector<Particle> *> chargeBase = {
-            {1, &BaryonArray},
-            {2, &StrangeArray},
-            {3, &ChargeArray}};
-
-        Int_t primaryType = entry.ConservedPair.first;
-        Int_t secondaryType = entry.ConservedPair.second;
-
         for (const auto &power : Dict->Powers)
         {
-            Series Bi(power[0], *chargeBase[primaryType]);
-            Bi *= Series(power[1], *chargeBase[secondaryType]);
+            Series Bi(power[0], LeftArray);
+            Bi *= Series(power[1], RightArray);
             for (auto &component : Bi.Components)
             {
                 if (component.first.size() == 0)
@@ -327,21 +296,12 @@ KochRatio::KochRatio()
                 }
                 Result[object].insert(component.first);
             }
-            Component key;
-            if (power[0])
-            {
-                key[primaryType] = power[0];
-            }
-            if (power[1])
-            {
-                key[secondaryType] = power[1];
-            }
+            Component key = BuildKey(leftType, power[0], rightType, power[1]);
             SeriesHolder[object][key] = std::move(Bi);
         }
-
-        std::string firstName = document.SyntaxMap[primaryType] + "1" + document.SyntaxMap[secondaryType] + "1";
-        std::string secondName = document.SyntaxMap[secondaryType] + "2";
-        ResultName[object] = {"R11", firstName, secondName};
+        auto &document = Document::getInstance();
+        ResultName[object] = {
+            "R11", Form("%s1%s1", document.SyntaxMap[leftType].c_str(), document.SyntaxMap[rightType].c_str()), Form("%s2", document.SyntaxMap[leftType].c_str()), Form("%s2", document.SyntaxMap[rightType].c_str())};
         for (const auto &component : Result[object])
         {
             ResultName[object].push_back(component.GetString());
@@ -354,16 +314,9 @@ std::vector<Double_t> KochRatio::GetResult(Bool_t IsError, Int_t iAcc, ProxyEntr
 {
     std::vector<Double_t> value;
     auto &object = entry->Name;
-    Int_t primaryType = entry->ConservedPair.first;
-    Int_t secondaryType = entry->ConservedPair.second;
-    Component numerator, denominator;
-    numerator[primaryType] = 1;
-    if (Order > 1)
-    {
-        numerator[secondaryType] = Order - 1;
-    }
-    denominator[secondaryType] = Order;
-
+    auto [leftType, rightType] = GetConservedTypes(GetOffdiagonalType(object));
+    Component numerator = BuildKey(leftType, 1, rightType, Order - 1);
+    Component denominator = BuildKey(leftType, 0, rightType, Order);
     value.reserve(ResultName[object].size());
     if (IsError)
     {

@@ -12,7 +12,7 @@
 #include "Series.h"
 #include "PDGData.h"
 R__LOAD_LIBRARY(libDependency.so)
-void bsdictionary()
+void dictionary()
 {
     auto *combination = Combination::getInstance();
     std::vector<std::vector<int>> Powers;
@@ -22,7 +22,7 @@ void bsdictionary()
         Powers.insert(Powers.end(), vec.begin(), vec.end());
     }
     std::ofstream LogFile("log.txt");
-    auto &BSMap = BSDocument::getInstance();
+    auto &BSMap = Document::getInstance();
     Int_t nSpecies = static_cast<int>(BSMap.IndexMap.size());
     auto &PDG = PDGData::getInstance();
     std::vector<Particle> BaryonArrary{{2212, 1}, {-2212, -1}};
@@ -110,7 +110,7 @@ void demoPartition()
 
 void demostrate()
 {
-    // bsdictionary();
+    // dictionary();
     KochRatio calculate;
     KochRatio::Pool moment;
     moment[{321}] = 10;

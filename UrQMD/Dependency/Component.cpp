@@ -3,13 +3,8 @@
 #include "Helper.h"
 #include "Component.h"
 #include "ThreadPool.h"
-Document::Document() : SpeciesSet{3122, 3312}
+Document::Document()
 {
-    int index = 0;
-    for (const auto &element : SpeciesSet)
-    {
-        IndexMap[element] = index++;
-    }
     StringMap = {
         {2212, "Proton"},
         {-2212, "Pbar"},
@@ -38,34 +33,34 @@ Document::Document() : SpeciesSet{3122, 3312}
         {1, "Baryon"},
         {2, "Strangeness"},
         {3, "Charge"}};
-    SyntaxMap= {
-            {2212, "p"},
-            {-2212, "#bar{p}"},
-            {321, "K^{+}"},
-            {-321, "K^{-}"},
-            {221, "#pi^{+}"},
-            {-221, "#pi^{-}"},
-            {3122, "#Lambda"},
-            {-3122, "#bar{#Lambda}"},
-            {3212, "#Sigma^{0}"},
-            {-3212, "#bar{#Sigma^{0}}"},
-            {3312, "#Xi"},
-            {-3312, "#bar{#Xi}"},
-            {3334, "#Omega^{-}"},
-            {-3334, "#bar{#Omega}^{+}"},
-            {3322, "#Xi^{0}"},
-            {-3322, "#bar{#Xi}^{0}"},
-            {3222, "#Sigma^{+}"},
-            {-3222, "#bar{#Sigma}^{+}"},
-            {3112, "#Sigma^{-}"},
-            {-3112, "#bar{#Sigma}^{-}"},
-            {2112, "n"},
-            {-2112, "#bar{n}"},
-            {311, "K^{0}"},
-            {-311, "#bar{K}^{0}"},
-            {1, "B"},
-            {2, "S"},
-            {3, "Q"}};
+    SyntaxMap = {
+        {2212, "p"},
+        {-2212, "#bar{p}"},
+        {321, "K^{+}"},
+        {-321, "K^{-}"},
+        {221, "#pi^{+}"},
+        {-221, "#pi^{-}"},
+        {3122, "#Lambda"},
+        {-3122, "#bar{#Lambda}"},
+        {3212, "#Sigma^{0}"},
+        {-3212, "#bar{#Sigma^{0}}"},
+        {3312, "#Xi"},
+        {-3312, "#bar{#Xi}"},
+        {3334, "#Omega^{-}"},
+        {-3334, "#bar{#Omega}^{+}"},
+        {3322, "#Xi^{0}"},
+        {-3322, "#bar{#Xi}^{0}"},
+        {3222, "#Sigma^{+}"},
+        {-3222, "#bar{#Sigma}^{+}"},
+        {3112, "#Sigma^{-}"},
+        {-3112, "#bar{#Sigma}^{-}"},
+        {2112, "n"},
+        {-2112, "#bar{n}"},
+        {311, "K^{0}"},
+        {-311, "#bar{K}^{0}"},
+        {1, "B"},
+        {2, "S"},
+        {3, "Q"}};
 }
 Component::Component(const std::pair<int, int> &pair)
 {

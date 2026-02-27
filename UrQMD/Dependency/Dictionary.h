@@ -13,7 +13,6 @@ struct Dictionary
     }
     Dictionary();
     ~Dictionary() {};
-    int nSpecies;
     int nConstituent;
     std::vector<std::vector<int>> Powers;
     std::set<Component> Constituent;

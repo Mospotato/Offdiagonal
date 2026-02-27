@@ -11,4 +11,4 @@ then
     echo "Creating File"
     mkdir 'File'
 fi
-sftp "ftp:/star/u/hfeng1/Kochratio/UrQMD/ReadUrQMD/File/$1.root" "File/"
+sftp "ftp:/star/u/hfeng1/Offdiagonal/UrQMD/ReadUrQMD/File/$1.root" "File/"

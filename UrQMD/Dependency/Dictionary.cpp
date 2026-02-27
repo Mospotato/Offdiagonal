@@ -11,35 +11,24 @@ Dictionary::Dictionary()
         PowerVec vec = combination->getCombinations(i, 2);
         Powers.insert(Powers.end(), vec.begin(), vec.end());
     }
-    auto &document = Document::getInstance();
-    nSpecies = static_cast<int>(document.IndexMap.size());
     auto &PDG = PDGData::getInstance();
-    std::vector<Particle> BaryonArrary{{2212, 1}, {-2212, -1}};
-    BaryonArrary.reserve(2 * nSpecies);
-    std::vector<Particle> StrangeArrary{{321, 1}, {-321, -1}};
-    StrangeArrary.reserve(2 * nSpecies);
-    std::vector<Particle> ChargeArrary{{211, 1}, {-211, -1}};
-    ChargeArrary.reserve(2 * nSpecies);
-    for (const auto &pdg : document.SpeciesSet)
+    auto GenerateArray = [&](std::vector<int> PDGVec, int type)
     {
-        if (PDG.PDGMap[pdg]->Baryon)
+        std::vector<Particle> Array;
+        Array.reserve(2 * PDGVec.size());
+        for (const auto &pdg : PDGVec)
         {
-            BaryonArrary.push_back(std::make_pair(pdg, PDG.PDGMap[pdg]->Baryon));
-            BaryonArrary.push_back(std::make_pair(-pdg, -PDG.PDGMap[pdg]->Baryon));
+            int value = GetConservedValue(PDG.PDGMap.at(pdg), type);
+            Array.push_back(std::make_pair(pdg, value));
+            Array.push_back(std::make_pair(-pdg, -value));
         }
-        if (PDG.PDGMap[pdg]->Strangeness)
-        {
-            StrangeArrary.push_back(std::make_pair(pdg, PDG.PDGMap[pdg]->Strangeness));
-            StrangeArrary.push_back(std::make_pair(-pdg, -PDG.PDGMap[pdg]->Strangeness));
-        }
-        if (PDG.PDGMap[pdg]->Charge)
-        {
-            ChargeArrary.push_back(std::make_pair(pdg, PDG.PDGMap[pdg]->Charge));
-            ChargeArrary.push_back(std::make_pair(-pdg, -PDG.PDGMap[pdg]->Charge));
-        }
-    }
+        return Array;
+    };
     //====================================================================
     // Generate the collection of all possible components
+    auto BaryonArrary = GenerateArray(std::vector<int>{2212, 3122}, 1);
+    auto StrangeArrary = GenerateArray(std::vector<int>{3122, 321}, 2);
+    auto ChargeArrary = GenerateArray(std::vector<int>{2212, 211, 321}, 3);
     std::vector<std::vector<Particle> *> BaseArrays{&BaryonArrary, &StrangeArrary, &ChargeArrary};
     std::vector<std::array<int, 2>> CombinationVec{{0, 1}, {0, 2}, {1, 2}};
     auto GetConstituents = [&]()

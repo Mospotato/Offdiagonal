@@ -206,10 +206,10 @@ Int_t StNbdFitMaker::Scan(const Int_t nevents,
 		Error("StNbdFitMaker::Fit", "hNcoll_Npart doesn't exist");
 		assert(hNcollNpart);
 	}
-	const Double_t effstep = (effbin == 1) ? 0 : (effmax - effmin) / static_cast<Double_t>(effbin - 1);
-	const Double_t nppstep = (nppbin == 1) ? 0 : (nppmax - nppmin) / static_cast<Double_t>(nppbin - 1);
-	const Double_t kstep = (kbin == 1) ? 0 : (kmax - kmin) / static_cast<Double_t>(kbin - 1);
-	const Double_t xstep = (xbin == 1) ? 0 : (xmax - xmin) / static_cast<Double_t>(xbin - 1);
+	const Double_t effstep = (effbin == 1) ? 0 : (effmax - effmin) / static_cast<Double_t>(effbin);
+	const Double_t nppstep = (nppbin == 1) ? 0 : (nppmax - nppmin) / static_cast<Double_t>(nppbin);
+	const Double_t kstep = (kbin == 1) ? 0 : (kmax - kmin) / static_cast<Double_t>(kbin);
+	const Double_t xstep = (xbin == 1) ? 0 : (xmax - xmin) / static_cast<Double_t>(xbin);
 	printf("StNbdFitMaker::Scan  eff: %d, effStep = %1.3f, effMin = %1.3f, effMax = %1.3f\n", effbin, effstep, effmin, effmax);
 	printf("StNbdFitMaker::Scan  nBin: %d, nppStep = %1.3f, nppMin = %1.3f, nppMax = %1.3f\n", nppbin, nppstep, nppmin, nppmax);
 	printf("StNbdFitMaker::Scan  kBin: %d, kStep = %1.3f, kMin = %1.3f, kMax = %1.3f\n", kbin, kstep, kmin, kmax);
