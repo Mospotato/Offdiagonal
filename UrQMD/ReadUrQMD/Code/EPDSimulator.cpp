@@ -51,9 +51,10 @@ void EPDSimulator::FillEPD(const TLorentzVector &vector)
         return; // Particle is out of EPD acceptance
     }
     MIP[tileIndex] += gRandom->Landau(1, 0.2); // Simulate MIP response with a Landau distribution
-    if (MIP[tileIndex] > 3)
+    int MaxMIP = 7; // Maximum MIP value to improve correlation with RefMult
+    if (MIP[tileIndex] > MaxMIP)
     {
-        MIP[tileIndex] = 3;
+        MIP[tileIndex] = MaxMIP;
     }
     return;
 }

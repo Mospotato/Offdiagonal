@@ -6,8 +6,9 @@
 #include "TH1F.h"
 #include "TFile.h"
 #include "TSystem.h"
-void GetCentrality(Int_t Energy, Bool_t is32Cent)
+void GetCentrality(Int_t Energy, Bool_t is32Cent = false)
 {
+    gSystem->Exec(Form("cp Configuration.txt %s/%d/Configuration.txt", is32Cent ? "32Cent" : "File", Energy));
     TFile *file = new TFile(Form("File/%d/glauber.root", Energy));
     TH1D *sim = (TH1D *)file->Get("RefMultSim");
     TH1D *data = (TH1D *)file->Get("RefMult");

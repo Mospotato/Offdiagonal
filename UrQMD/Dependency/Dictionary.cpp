@@ -30,7 +30,7 @@ Dictionary::Dictionary()
     auto StrangeArrary = GenerateArray(std::vector<int>{3122, 321}, 2);
     auto ChargeArrary = GenerateArray(std::vector<int>{2212, 211, 321}, 3);
     std::vector<std::vector<Particle> *> BaseArrays{&BaryonArrary, &StrangeArrary, &ChargeArrary};
-    std::vector<std::array<int, 2>> CombinationVec{{0, 1}, {0, 2}, {1, 2}};
+    std::vector<std::array<int, 2>> CombinationVec{{0, 1}, {0, 2}, {2, 1}};
     auto GetConstituents = [&]()
     {
         for (const auto &power : Powers)

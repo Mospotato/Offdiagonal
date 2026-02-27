@@ -1,6 +1,7 @@
 #define KOCHRATIO_CXX
 #include <iostream>
 #include <sstream>
+#include <algorithm>
 #include "KochRatio.h"
 #include "ThreadPool.h"
 Component BuildKey(int leftType, Int_t leftPower, int rightType, Int_t rightPower)
@@ -88,11 +89,11 @@ void KochRatio::Calculate(Int_t iAcc, const std::string &object)
     }
     auto &ratio = Ratio[iAcc][object][Centrality];
     auto &ratioError = RatioError[iAcc][object][Centrality];
-    auto [leftType, rightType] = GetConservedTypes(GetOffdiagonalType(object));
+    auto Pair = GetConservedTypes(GetOffdiagonalType(object));
     for (Int_t Order = 0; Order < 2; Order++)
     {
-        Component numerator = BuildKey(leftType, 1, rightType, Order);
-        Component denominator = BuildKey(leftType, 0, rightType, Order + 1);
+        Component numerator = BuildKey(Pair.first, 1, Pair.second, Order);
+        Component denominator = BuildKey(Pair.first, 0, Pair.second, Order + 1);
         ratio[numerator] += Weight * cumulant[numerator] / cumulant[denominator];
         ratioError[numerator] += ErrorWeight * GetRatioError(Order + 1, moment, cumulant, GetOffdiagonalType(object));
     }
@@ -142,10 +143,10 @@ Double_t KochRatio::GetError(const Pool &moment, const Component &component)
 Double_t KochRatio::GetRatioError(Int_t Order, const Pool &moment, const Pool &cumulant, OffdiagonalType type)
 {
     auto *helper = ComponentHelper::getInstance();
-    auto [leftType, rightType] = GetConservedTypes(type);
-    Component numerator = BuildKey(leftType, 1, rightType, Order - 1);
-    Component denominator = BuildKey(leftType, 0, rightType, Order);
-    Component MaxIndex = BuildKey(leftType, 1, rightType, Order);
+    auto Pair = GetConservedTypes(type);
+    Component numerator = BuildKey(Pair.first, 1, Pair.second, Order - 1);
+    Component denominator = BuildKey(Pair.first, 0, Pair.second, Order);
+    Component MaxIndex = BuildKey(Pair.first, 1, Pair.second, Order);
     std::unordered_map<Component, double, ComponentHash> componentSet;
     auto &sets = helper->Subset(MaxIndex);
     for (const auto &differential : sets)
@@ -255,7 +256,7 @@ KochRatio::KochRatio()
     {
         auto &object = entry.Name;
         OffdiagTypeMap[object] = entry.Type;
-        auto [leftType, rightType] = GetConservedTypes(entry.Type);
+        auto Pair = GetConservedTypes(entry.Type);
         std::vector<Particle> LeftArray, RightArray;
         if (object.find("All") == std::string::npos)
         {
@@ -263,21 +264,21 @@ KochRatio::KochRatio()
             RightArray.reserve(2 * entry.RightSet.size());
             for (auto &pdg : entry.LeftSet)
             {
-                Int_t value = GetConservedValue(PDG.PDGMap.at(pdg), leftType);
+                Int_t value = GetConservedValue(PDG.PDGMap.at(pdg), Pair.first);
                 LeftArray.push_back(std::make_pair(pdg, value));
                 LeftArray.push_back(std::make_pair(-pdg, -value));
             }
             for (auto &pdg : entry.RightSet)
             {
-                Int_t value = GetConservedValue(PDG.PDGMap.at(pdg), rightType);
+                Int_t value = GetConservedValue(PDG.PDGMap.at(pdg), Pair.second);
                 RightArray.push_back(std::make_pair(pdg, value));
                 RightArray.push_back(std::make_pair(-pdg, -value));
             }
         }
         else
         {
-            LeftArray.push_back(std::make_pair(leftType, 1));
-            RightArray.push_back(std::make_pair(rightType, 1));
+            LeftArray.push_back(std::make_pair(Pair.first, 1));
+            RightArray.push_back(std::make_pair(Pair.second, 1));
         }
         for (const auto &power : Dict->Powers)
         {
@@ -296,12 +297,12 @@ KochRatio::KochRatio()
                 }
                 Result[object].insert(component.first);
             }
-            Component key = BuildKey(leftType, power[0], rightType, power[1]);
+            Component key = BuildKey(Pair.first, power[0], Pair.second, power[1]);
             SeriesHolder[object][key] = std::move(Bi);
         }
         auto &document = Document::getInstance();
         ResultName[object] = {
-            "R11", Form("%s1%s1", document.SyntaxMap[leftType].c_str(), document.SyntaxMap[rightType].c_str()), Form("%s2", document.SyntaxMap[leftType].c_str()), Form("%s2", document.SyntaxMap[rightType].c_str())};
+            "R11", Form("%s1%s1", document.SyntaxMap[Pair.first].c_str(), document.SyntaxMap[Pair.second].c_str()), Form("%s2", document.SyntaxMap[Pair.second].c_str()), Form("%s2", document.SyntaxMap[Pair.first].c_str())};
         for (const auto &component : Result[object])
         {
             ResultName[object].push_back(component.GetString());
@@ -314,13 +315,14 @@ std::vector<Double_t> KochRatio::GetResult(Bool_t IsError, Int_t iAcc, ProxyEntr
 {
     std::vector<Double_t> value;
     auto &object = entry->Name;
-    auto [leftType, rightType] = GetConservedTypes(GetOffdiagonalType(object));
-    Component numerator = BuildKey(leftType, 1, rightType, Order - 1);
-    Component denominator = BuildKey(leftType, 0, rightType, Order);
+    auto Pair = GetConservedTypes(GetOffdiagonalType(object));
+    Component LeftSqure = BuildKey(Pair.first, Order, Pair.second, 0);
+    Component numerator = BuildKey(Pair.first, 1, Pair.second, Order - 1);
+    Component denominator = BuildKey(Pair.first, 0, Pair.second, Order);
     value.reserve(ResultName[object].size());
     if (IsError)
     {
-        value = {RatioError[iAcc][object][Centrality][numerator], fabs(entry->Factor) * Error[iAcc][object][Centrality][numerator], Error[iAcc][object][Centrality][denominator]};
+        value = {fabs(entry->Factor) * RatioError[iAcc][object][Centrality][numerator], Error[iAcc][object][Centrality][numerator], Error[iAcc][object][Centrality][denominator], Error[iAcc][object][Centrality][LeftSqure]};
         auto &error = ErrorBrick[iAcc][object][Centrality];
         for (const auto &component : Result[object])
         {
@@ -329,7 +331,7 @@ std::vector<Double_t> KochRatio::GetResult(Bool_t IsError, Int_t iAcc, ProxyEntr
     }
     else
     {
-        value = {Ratio[iAcc][object][Centrality][numerator], entry->Factor * Cumulant[iAcc][object][Centrality][numerator], Cumulant[iAcc][object][Centrality][denominator]};
+        value = {entry->Factor * Ratio[iAcc][object][Centrality][numerator], Cumulant[iAcc][object][Centrality][numerator], Cumulant[iAcc][object][Centrality][denominator], Cumulant[iAcc][object][Centrality][LeftSqure]};
         auto &brick = CumulantBrick[iAcc][object][Centrality];
         for (const auto &component : Result[object])
         {

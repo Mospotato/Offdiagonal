@@ -116,6 +116,8 @@ Bool_t ReadUrQMD::Process(Long64_t entry)
             ParticleMap[iAcc][1] += sign * ParticleData->Baryon;
          if (ParticleData->Strangeness)
             ParticleMap[iAcc][2] += sign * ParticleData->Strangeness;
+         if (ParticleData->Charge)
+            ParticleMap[iAcc][3] += sign * ParticleData->Charge;
       }
    }
    auto nMIP = EPDSim.GetnMIP();

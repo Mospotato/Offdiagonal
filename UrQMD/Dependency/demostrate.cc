@@ -23,44 +23,53 @@ void dictionary()
     }
     std::ofstream LogFile("log.txt");
     auto &BSMap = Document::getInstance();
-    Int_t nSpecies = static_cast<int>(BSMap.IndexMap.size());
     auto &PDG = PDGData::getInstance();
-    std::vector<Particle> BaryonArrary{{2212, 1}, {-2212, -1}};
-    BaryonArrary.reserve(2 * nSpecies);
-    std::vector<Particle> StrangeArrary{{321, 1}, {-321, -1}};
-    StrangeArrary.reserve(2 * nSpecies);
-    for (const auto &pdg : BSMap.SpeciesSet)
+    auto GenerateArray = [&](std::vector<int> PDGVec, int type)
     {
-        if (PDG.PDGMap[pdg]->Baryon)
+        std::vector<Particle> Array;
+        Array.reserve(2 * PDGVec.size());
+        for (const auto &pdg : PDGVec)
         {
-            BaryonArrary.emplace_back(std::make_pair(pdg, PDG.PDGMap[pdg]->Baryon));
-            BaryonArrary.emplace_back(std::make_pair(-pdg, -PDG.PDGMap[pdg]->Baryon));
+            int value = GetConservedValue(PDG.PDGMap.at(pdg), type);
+            Array.push_back(std::make_pair(pdg, value));
+            Array.push_back(std::make_pair(-pdg, -value));
         }
-        if (PDG.PDGMap[pdg]->Strangeness)
-        {
-            StrangeArrary.emplace_back(std::make_pair(pdg, PDG.PDGMap[pdg]->Strangeness));
-            StrangeArrary.emplace_back(std::make_pair(-pdg, -PDG.PDGMap[pdg]->Strangeness));
-        }
-    }
-    std::set<Component> Individual;
-    for (const auto &power : Powers)
+        return Array;
+    };
+    //====================================================================
+    // Generate the collection of all possible components
+    auto BaryonArrary = GenerateArray(std::vector<int>{2212, 3122}, 1);
+    auto StrangeArrary = GenerateArray(std::vector<int>{3122, 321}, 2);
+    auto ChargeArrary = GenerateArray(std::vector<int>{2212, 211, 321}, 3);
+    std::vector<std::vector<Particle> *> BaseArrays{&BaryonArrary, &StrangeArrary, &ChargeArrary};
+    std::vector<std::array<int, 2>> CombinationVec{{0, 1}, {0, 2}, {2, 1}};
+    std::set<Component> Constituent;
+    auto GetConstituents = [&]()
     {
-        Series B(power[0], BaryonArrary);
-        Series S(power[1], StrangeArrary);
-        Series Bi(B, S);
-        LogFile << Form("(%d, %d) Number of Components: %zu\n", power[0], power[1], Bi.Components.size());
-        for (auto &component : Bi.Components)
+        for (const auto &power : Powers)
         {
-            Individual.insert(component.first);
-            LogFile << "Coeff: " << component.second << " Component: " << component.first.GetSyntax() << '\n';
+            for (int ic = 0; ic < CombinationVec.size(); ic++)
+            {
+                auto pair = CombinationVec[ic];
+                Series Left(power[0], *BaseArrays[pair[0]]);
+                Series Right(power[1], *BaseArrays[pair[1]]);
+                Series Product(Left, Right);
+                LogFile << Form("%s_(%d, %d) Number of Components: %zu\n", GetConservedString(static_cast<OffdiagonalType>(ic)).c_str(), power[0], power[1], Product.Components.size());
+                for (const auto &Component : Product.Components)
+                {
+                    Constituent.insert(Component.first);
+                    LogFile << "Coeff: " << Component.second << " Component: " << Component.first.GetSyntax() << '\n';
+                }
+            }
         }
-    }
+    };
+    GetConstituents();
     int iComponent = 1;
-    for (const auto &Component : Individual)
+    for (const auto &Component : Constituent)
     {
         LogFile << iComponent++ << " " << Component.GetSyntax() << '\n';
     }
-    LogFile << Individual.size() << " Components Generated!\n";
+    LogFile << Constituent.size() << " Components Generated!\n";
     BaryonArrary.clear();
     StrangeArrary.clear();
     BaryonArrary.emplace_back(std::make_pair(100, 1));
@@ -110,7 +119,7 @@ void demoPartition()
 
 void demostrate()
 {
-    // dictionary();
+    dictionary();
     KochRatio calculate;
     KochRatio::Pool moment;
     moment[{321}] = 10;
