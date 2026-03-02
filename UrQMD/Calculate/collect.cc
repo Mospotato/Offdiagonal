@@ -38,6 +38,10 @@ void collect(int Energy = 218)
     if (gRB2Q2) {
         gRB2Q2->SetTitle("B2/Q2 vs N_{part};Average Number of Participanting Nucleons #LTN_{part}#GT;#LTB^{2}#GT_{c}/#LTQ^{2}#GT_{c}");
     }
+    auto gRBQB2 = GetRatio(graphsMap["BQ"], graphsMap["B2"]);
+    if (gRBQB2) {
+        gRBQB2->SetTitle("BQ/B2 vs N_{part};Average Number of Participanting Nucleons #LTN_{part}#GT;#LTBQ#GT_{c}/#LTB^{2}#GT_{c}");
+    }
     gSystem->mkdir("Collected", true);
     TFile *fOutput = new TFile(Form("Collected/%d.root", Energy), "RECREATE");
     if (!fOutput || fOutput->IsZombie()) {
@@ -54,6 +58,9 @@ void collect(int Energy = 218)
     }
     if (gRB2Q2) {
         gRB2Q2->Write("B2Q2");
+    }
+    if (gRBQB2) {
+        gRBQB2->Write("BQB2");
     }
     fOutput->Close();
     fInput->Close();
